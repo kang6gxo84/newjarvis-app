@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/api/openai/realtime-token",
+      "destination": "/api/openai/realtime-token.js"
+    }
+  ]
+}

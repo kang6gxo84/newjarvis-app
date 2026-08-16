@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#04060b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>J.A.R.V.I.S. - Autonomous System Intelligence</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        jarvis: {
+                            cyan: '#00f0ff',
+                            blue: '#0072ff',
+                            gold: '#ffb700',
+                            red: '#ff0055',
+                            dark: '#04060b'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                        noto: ['Noto Sans KR', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #04060b;
+            color: #e0f7fc;
+            font-family: 'Rajdhani', 'Noto Sans KR', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Electric Circuit & Sci-Fi HUD Background */
+        .circuit-bg {
+            background-color: #030509;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(0, 240, 255, 0.12) 0%, transparent 75%),
+                linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+            background-size: 100% 100%, 45px 45px, 45px 45px;
+            background-position: center center;
+        }
+
+        /* Glassmorphism Panel */
+        .hud-panel {
+            background: rgba(8, 14, 28, 0.82);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+        
+        .hud-panel::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 6px; height: 6px;
+            border-top: 2px solid #00f0ff; border-left: 2px solid #00f0ff;
+        }
+        .hud-panel::after {
+            content: ''; position: absolute; bottom: 0; right: 0; width: 6px; height: 6px;
+            border-bottom: 2px solid #00f0ff; border-right: 2px solid #00f0ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(4, 6, 12, 0.8); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.4); border-radius: 2px; }
+
+        /* Subtle Scanline Overlay */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(1000%); }
+        }
+        .scanline {
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.5), transparent);
+            animation: scanline 9s linear infinite;
+            pointer-events: none;
+        }
+
+    <style>
+        /* ================================================================
+           MOBILE / RESPONSIVE HARDENING
+           Keeps the HUD usable on narrow phones and landscape screens.
+           ================================================================ */
+        html, body {
+            width: 100%;
+            min-width: 0;
+            height: 100%;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+            overscroll-behavior: none;
+        }
+
+        body {
+            height: 100dvh;
+            min-height: 100svh;
+            box-sizing: border-box;
+            padding:
+                env(safe-area-inset-top)
+                env(safe-area-inset-right)
+                env(safe-area-inset-bottom)
+                env(safe-area-inset-left);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        button, input, select {
+            font: inherit;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button {
+            touch-action: manipulation;
+        }
+
+        /* Never allow flex children to force horizontal overflow. */
+        header, main, header > *, main > *, .hud-panel {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        /* Header becomes compact instead of overflowing on phones. */
+        @media (max-width: 640px) {
+            header {
+                padding: 8px 10px !important;
+                gap: 8px;
+                min-height: 52px;
+            }
+
+            header > div:first-child {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            header h1 {
+                font-size: 12px !important;
+                letter-spacing: 0.12em;
+                white-space: nowrap;
+            }
+
+            header .w-9 {
+                width: 32px !important;
+                height: 32px !important;
+                flex: 0 0 32px;
+            }
+
+            /* Hide the editable name field on narrow screens; login still works. */
+            #userNameInput {
+                width: 0 !important;
+                max-width: 0 !important;
+                padding: 0 !important;
+                border: 0 !important;
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            header > div:last-child {
+                gap: 5px !important;
+                flex: 0 0 auto;
+            }
+
+            header > div:last-child > div {
+                padding: 5px !important;
+            }
+
+            #langSelect {
+                width: 28px;
+                max-width: 28px;
+                overflow: hidden;
+                color: transparent;
+            }
+
+            #langSelect option {
+                color: #e0f7fc;
+            }
+
+            #camToggleBtn {
+                padding: 8px !important;
+            }
+
+            #micToggleBtn {
+                width: 38px;
+                height: 38px;
+                padding: 0 !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Main area: calculate around the mobile viewport, not 42vh alone. */
+            main {
+                min-height: 0;
+                height: calc(100dvh - 52px);
+                padding: 6px 10px max(8px, env(safe-area-inset-bottom)) !important;
+                justify-content: space-between !important;
+            }
+
+            main > div:first-child {
+                width: min(82vw, 330px) !important;
+                max-width: 330px !important;
+                max-height: none !important;
+                flex: 1 1 auto;
+                min-height: 0;
+                margin: 4px auto !important;
+            }
+
+            #jarvisCoreCanvas {
+                width: 100%;
+                height: 100%;
+                max-width: 100%;
+                max-height: 100%;
+            }
+
+            #coreStatusLabel {
+                bottom: 0;
+                max-width: calc(100% - 20px);
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                font-size: 9px !important;
+                padding: 5px 9px !important;
+            }
+
+            /* Dialogue panel gets a predictable height and never pushes the HUD off-screen. */
+            main > div:nth-child(2) {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: min(30dvh, 235px);
+                max-height: 235px !important;
+                min-height: 145px;
+                margin: 4px 0 0 !important;
+                padding: 10px !important;
+                border-radius: 15px !important;
+                flex: 0 0 auto;
+            }
+
+            #chatHistory {
+                max-height: none !important;
+                min-height: 0;
+                font-size: 11px !important;
+            }
+
+            #userInput {
+                min-width: 0;
+                width: 100%;
+                font-size: 12px !important;
+                padding: 10px !important;
+            }
+
+            main > div:nth-child(2) .mt-2 {
+                margin-top: 7px !important;
+            }
+
+            main > div:nth-child(2) button {
+                flex: 0 0 56px;
+                padding: 9px !important;
+            }
+
+            /* Camera overlay fits the phone instead of being a fixed desktop card. */
+            #cameraContainer {
+                top: calc(58px + env(safe-area-inset-top)) !important;
+                left: 10px !important;
+                right: 10px !important;
+                width: auto !important;
+                max-width: none !important;
+                max-height: calc(100dvh - 75px) !important;
+                padding: 10px !important;
+            }
+
+            #cameraContainer .h-44 {
+                height: min(45dvh, 300px) !important;
+            }
+
+            /* Login modal stays inside the safe viewport. */
+            #loginModal {
+                padding:
+                    max(12px, env(safe-area-inset-top))
+                    12px
+                    max(12px, env(safe-area-inset-bottom))
+                    12px !important;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            #loginModal > div {
+                width: min(100%, 420px);
+                max-height: calc(100dvh - 24px);
+                overflow-y: auto;
+                padding: 20px !important;
+            }
+
+            #loginNameInput,
+            #loginLangSelect {
+                min-height: 44px;
+                font-size: 16px !important; /* prevents iOS zoom */
+            }
+
+            #loginModal button {
+                min-height: 46px;
+            }
+        }
+
+        /* Very small phones. */
+        @media (max-width: 380px) {
+            header {
+                padding-left: 7px !important;
+                padding-right: 7px !important;
+            }
+
+            header > div:last-child > div:first-child {
+                display: none !important;
+            }
+
+            main {
+                padding-left: 7px !important;
+                padding-right: 7px !important;
+            }
+
+            main > div:first-child {
+                width: min(78vw, 285px) !important;
+            }
+
+            main > div:nth-child(2) {
+                height: 31dvh;
+                min-height: 140px;
+            }
+        }
+
+        /* Landscape phones: make the core and log coexist horizontally. */
+        @media (max-height: 520px) and (orientation: landscape) {
+            main {
+                height: calc(100dvh - 48px);
+                flex-direction: row !important;
+                align-items: center !important;
+                justify-content: center !important;
+                gap: 10px;
+                padding: 5px 10px !important;
+            }
+
+            main > div:first-child {
+                width: min(52vh, 330px) !important;
+                height: min(52vh, 330px) !important;
+                flex: 0 0 auto;
+                margin: 0 !important;
+            }
+
+            main > div:nth-child(2) {
+                width: min(48vw, 470px) !important;
+                height: min(82dvh, 235px) !important;
+                min-height: 130px;
+                margin: 0 !important;
+            }
+
+            #cameraContainer {
+                top: 55px !important;
+                max-height: calc(100dvh - 60px) !important;
+            }
+        }
+
+        /* Prevent iOS keyboard from causing the entire HUD to resize unpredictably. */
+        @supports (-webkit-touch-callout: none) {
+            input, select {
+                font-size: 16px;
+            }
+
+            body {
+                min-height: -webkit-fill-available;
+            }
+        }
+    </style>
+
+    </style>
+</head>
+<body class="circuit-bg h-screen w-screen flex flex-col justify-between relative overflow-hidden">
+    <div class="scanline"></div>
+
+    <!-- FIRST LOGIN & OPERATOR IDENTIFICATION OVERLAY MODAL -->
+    <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-2xl p-4">
+        <div class="hud-panel p-6 sm:p-8 rounded-2xl max-w-md w-full border border-jarvis-cyan/50 shadow-[0_0_50px_rgba(0,240,255,0.25)] text-center relative overflow-hidden">
+            <div class="w-16 h-16 rounded-full hud-panel mx-auto mb-4 flex items-center justify-center border-2 border-jarvis-cyan/60 animate-pulse">
+                <i class="fa-solid fa-atom text-jarvis-cyan text-3xl animate-spin" style="animation-duration: 10s;"></i>
+            </div>
+            <h2 class="font-orbitron text-xl sm:text-2xl font-extrabold text-jarvis-cyan tracking-wider mb-1">J.A.R.V.I.S.</h2>
+            <p class="font-orbitron text-xs text-slate-400 tracking-widest mb-6">SYSTEM INITIALIZATION & ACCESS CONTROL</p>
+            
+            <div class="space-y-4 text-left font-noto mb-6">
+                <div>
+                    <label class="block font-orbitron text-xs text-jarvis-cyan mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-id-card"></i> OPERATOR IDENTITY / USER NAME
+                    </label>
+                    <input type="text" id="loginNameInput" value="User" placeholder="Enter your name..." class="w-full bg-slate-900 border border-jarvis-cyan/40 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-jarvis-cyan font-orbitron">
+                </div>
+
+                <div>
+                    <label class="block font-orbitron text-xs text-jarvis-cyan mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-language"></i> PRIMARY LANGUAGE
+                    </label>
+                    <select id="loginLangSelect" class="w-full bg-slate-900 border border-jarvis-cyan/40 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-jarvis-cyan font-orbitron cursor-pointer">
+                        <option value="ko-KR">한국어 (Korean)</option>
+                        <option value="en-US">English (US)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="startSystemWithUser()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-jarvis-cyan/30 via-jarvis-blue/40 to-jarvis-cyan/30 hover:from-jarvis-cyan/50 hover:to-jarvis-cyan/50 text-jarvis-cyan font-orbitron font-bold border border-jarvis-cyan shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all flex items-center justify-center gap-2 group cursor-pointer text-sm tracking-wider">
+                <i class="fa-solid fa-power-off group-hover:rotate-90 transition-transform"></i>
+                <span>INITIALIZE SYSTEM</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- TOP CONTROL BAR & SETTINGS HEADER -->
+    <header class="p-3 border-b border-jarvis-cyan/20 bg-slate-950/80 backdrop-blur-md flex items-center justify-between z-30">
+        <!-- Brand & System Status -->
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg hud-panel flex items-center justify-center border border-jarvis-cyan/40">
+                <i class="fa-solid fa-atom text-jarvis-cyan text-lg animate-spin" style="animation-duration: 12s;"></i>
+            </div>
+            <div>
+                <h1 class="font-orbitron text-base font-bold tracking-widest text-jarvis-cyan flex items-center gap-2">
+                    J.A.R.V.I.S.
+                    <span id="systemStatusBadge" class="text-[9px] px-1.5 py-0.5 rounded bg-jarvis-cyan/20 border border-jarvis-cyan/40 text-jarvis-cyan font-normal">ONLINE</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- User Settings & Action Tools -->
+        <div class="flex items-center gap-2.5">
+            <!-- User Name Input Field -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 border border-jarvis-cyan/30 rounded-lg px-2.5 py-1 text-xs">
+                <i class="fa-solid fa-user-gear text-jarvis-cyan"></i>
+                <input type="text" id="userNameInput" value="User" onchange="updateUserSettings()" placeholder="Name" class="bg-transparent text-slate-100 font-orbitron focus:outline-none w-24 sm:w-32 text-xs">
+            </div>
+
+            <!-- Language Switcher -->
+            <div class="flex items-center gap-1.5 bg-slate-900/90 border border-jarvis-cyan/30 rounded-lg px-2.5 py-1 text-xs">
+                <i class="fa-solid fa-language text-jarvis-cyan"></i>
+                <select id="langSelect" onchange="updateUserSettings()" class="bg-transparent text-slate-100 font-orbitron focus:outline-none cursor-pointer text-xs">
+                    <option value="ko-KR" class="bg-slate-900 text-slate-100">한국어 (KO)</option>
+                    <option value="en-US" class="bg-slate-900 text-slate-100">English (US)</option>
+                </select>
+            </div>
+
+            <!-- Camera Toggle Button -->
+            <button id="camToggleBtn" onclick="toggleWebcam()" class="p-2 rounded-lg hud-panel border-jarvis-cyan/40 text-jarvis-cyan hover:bg-jarvis-cyan/20 transition-all text-xs flex items-center gap-1.5" title="Toggle Rear Camera Vision">
+                <i class="fa-solid fa-camera"></i>
+                <span class="hidden md:inline text-[11px]" id="camBtnLabel">VISION</span>
+            </button>
+
+            <!-- Mic Listening Toggle -->
+            <button id="micToggleBtn" onclick="toggleSpeechRecognition()" class="p-2.5 rounded-full hud-panel border-jarvis-cyan/40 text-jarvis-cyan hover:bg-jarvis-cyan/20 transition-all relative group" title="Toggle Speech Listening">
+                <i id="micIcon" class="fa-solid fa-microphone text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CAMERA VISION OVERLAY (Environment / Rear Camera Default) -->
+    <div id="cameraContainer" class="hidden fixed top-16 right-4 z-40 w-72 hud-panel p-3 rounded-xl border border-jarvis-cyan/40 shadow-2xl">
+        <div class="flex items-center justify-between text-xs font-orbitron mb-2 pb-1 border-b border-slate-800">
+            <span class="text-jarvis-cyan flex items-center gap-1.5">
+                <i class="fa-solid fa-eye"></i> <span id="visionTitleText">REAR CAMERA VISION</span>
+            </span>
+            <button onclick="toggleWebcam()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="relative bg-slate-950 rounded-lg overflow-hidden border border-slate-800 h-44 flex items-center justify-center">
+            <video id="webcamVideo" autoplay playsinline muted class="w-full h-full object-cover" style="display:block;max-width:100%;"></video>
+            <div class="absolute inset-0 pointer-events-none border border-jarvis-cyan/30 m-2 rounded flex items-center justify-center">
+                <div class="w-10 h-10 border border-dashed border-jarvis-cyan/60 rounded-full animate-spin"></div>
+            </div>
+        </div>
+        <button onclick="analyzeCameraFrame()" class="mt-2.5 w-full py-2 rounded-lg bg-jarvis-cyan/20 hover:bg-jarvis-cyan/30 text-xs text-jarvis-cyan font-orbitron font-bold border border-jarvis-cyan/40 transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span id="analyzeBtnLabel">ANALYZE FRAME</span>
+        </button>
+    </div>
+
+    <!-- MAIN SCREEN: CLEAN MINIMAL HERO AREA WITH PERFECT ASPECT-RATIO ARC CORE -->
+    <main class="flex-1 flex flex-col items-center justify-center relative w-full h-full px-4 py-2 overflow-hidden">
+        
+        <!-- FLUID AUDIO-REACTIVE CORE CONTAINER (STRICT 1:1 SQUARE ASPECT RATIO TO PREVENT OVAL DISTORTION) -->
+        <div class="relative flex items-center justify-center w-full max-w-[340px] sm:max-w-[420px] aspect-square max-h-[42vh] my-auto">
+            <!-- CANVAS ELEMENT WITH OBJECT-CONTAIN TO LOCK PERFECT CIRCLE FORM -->
+            <canvas id="jarvisCoreCanvas" width="600" height="600" class="w-full h-full object-contain drop-shadow-[0_0_45px_rgba(0,240,255,0.45)] cursor-pointer" onclick="handleCoreClick()"></canvas>
+            
+            <!-- OVERLAY STATUS BADGE INSIDE/BELOW CORE -->
+            <div id="coreStatusLabel" onclick="handleCoreClick()" class="absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-jarvis-cyan/40 text-[10px] font-orbitron font-bold text-jarvis-cyan tracking-widest cursor-pointer hover:bg-jarvis-cyan/20 transition-all shadow-lg text-center select-none">
+                CLICK CORE TO SPEAK
+            </div>
+        </div>
+
+        <!-- FLOATING DIALOGUE LOG & INPUT BOX -->
+        <div class="w-full max-w-2xl hud-panel p-3.5 rounded-2xl mb-3 border border-jarvis-cyan/30 flex flex-col max-h-48 z-20 transition-all shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+            <div class="flex items-center justify-between text-xs font-orbitron text-slate-400 mb-1.5 pb-1 border-b border-slate-800/80">
+                <span class="flex items-center gap-2 text-jarvis-cyan font-bold tracking-wider" id="logTitle">
+                    <i class="fa-solid fa-comments"></i> COMM LOG
+                </span>
+                <span id="aiThinkingSpinner" class="hidden text-jarvis-cyan animate-pulse">
+                    <i class="fa-solid fa-circle-notch animate-spin mr-1"></i> <span id="processingText">PROCESSING...</span>
+                </span>
+            </div>
+            
+            <!-- Dialogue Messages Container -->
+            <div id="chatHistory" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs font-noto max-h-24">
+                <!-- Dynamic conversation populates here -->
+            </div>
+
+            <!-- Manual Input Bar -->
+            <div class="mt-2 flex gap-2">
+                <input type="text" id="userInput" onkeydown="if(event.key==='Enter') sendUserQuery()" placeholder="Speak or type a command..." class="flex-1 bg-slate-900/90 border border-jarvis-cyan/30 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-jarvis-cyan font-noto">
+                <button onclick="sendUserQuery()" class="px-4 py-2 rounded-xl bg-jarvis-cyan/20 border border-jarvis-cyan/50 text-jarvis-cyan font-orbitron text-xs hover:bg-jarvis-cyan/30 transition-all font-bold">
+                    SEND
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        /* ===================================================================
+           J.A.R.V.I.S. Core Application State & System Configurations
+           =================================================================== */
+        const state = {
+            userName: "User",
+            language: "ko-KR",
+            isListening: false,
+            isSpeaking: false,
+            audioContext: null,
+            analyser: null,
+            clapTimestamps: [],
+            speechRecognition: null,
+            webcamStream: null
+        };
+
+        // Gemini remains the text/vision brain.
+        const geminiApiKey = ""; // Injected automatically in runtime environment
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`;
+
+        // OpenAI handles VOICE CONVERSATION only.
+        // Preferred production setup: your backend returns a short-lived Realtime client secret.
+        // Example: window.OPENAI_REALTIME_TOKEN_URL = "/api/openai/realtime-token";
+        // A direct browser key can be injected for local testing, but exposing a permanent
+        // OpenAI API key in a browser is not recommended.
+        const OPENAI_REALTIME_TOKEN_URL = window.OPENAI_REALTIME_TOKEN_URL || "/api/openai/realtime-token";
+        const OPENAI_API_KEY = window.OPENAI_API_KEY || "";
+        const OPENAI_REALTIME_MODEL = "gpt-realtime";
+
+        /* ===================================================================
+           AudioContext Unlock & Speech Engine Pre-warming
+           =================================================================== */
+        function unlockAudioContext() {
+            if (!state.audioContext) {
+                try {
+                    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {}
+            }
+            if (state.audioContext && state.audioContext.state === 'suspended') {
+                state.audioContext.resume();
+            }
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+            }
+        }
+        document.addEventListener('click', unlockAudioContext, { once: false });
+        document.addEventListener('touchstart', unlockAudioContext, { once: false });
+
+        /* System Initialization from Operator Login Screen */
+        function startSystemWithUser() {
+            unlockAudioContext();
+            
+            const loginName = document.getElementById('loginNameInput').value.trim();
+            const loginLang = document.getElementById('loginLangSelect').value;
+
+            state.userName = loginName || "User";
+            state.language = loginLang;
+
+            // Sync Header UI Inputs
+            document.getElementById('userNameInput').value = state.userName;
+            document.getElementById('langSelect').value = state.language;
+            updateUserSettings();
+
+            // Hide Login Modal Overlay
+            document.getElementById('loginModal').classList.add('hidden');
+
+            // Play startup sound chime
+            playJarvisChime();
+
+            // Voice Welcome Greeting
+            const isEng = state.language === 'en-US';
+            const welcomeMsg = isEng
+                ? `Identity confirmed. Access granted, ${state.userName}. All systems operational.`
+                : `사용자 인증 완료. 반갑습니다, ${state.userName} 님. 자비스 시스템을 가동합니다.`;
+
+            appendChatMessage("J.A.R.V.I.S.", welcomeMsg);
+            speakJarvis(welcomeMsg);
+        }
+
+        /* ===================================================================
+           OpenAI Realtime Voice Conversation
+           - Microphone input -> OpenAI Realtime
+           - Speech recognition/transcription -> OpenAI
+           - Assistant voice output -> OpenAI
+           - Text input and camera/vision remain on Gemini
+           =================================================================== */
+
+        let openAIRealtime = {
+            pc: null,
+            dc: null,
+            localStream: null,
+            audioEl: null,
+            connected: false,
+            connecting: false,
+            assistantBuffer: ""
+        };
+
+        function setVoiceStatus(label, active = false) {
+            const statusLabel = document.getElementById('coreStatusLabel');
+            if (!statusLabel) return;
+            statusLabel.innerText = label;
+            statusLabel.className = active
+                ? "absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-amber-400 text-[10px] font-orbitron font-bold text-amber-400 tracking-widest cursor-pointer shadow-lg animate-pulse text-center select-none"
+                : "absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-jarvis-cyan/40 text-[10px] font-orbitron font-bold text-jarvis-cyan tracking-widest cursor-pointer hover:bg-jarvis-cyan/20 transition-all shadow-lg text-center select-none";
+        }
+
+        async function getOpenAIRealtimeToken() {
+            // Secure production path: backend returns a short-lived client secret.
+            try {
+                const response = await fetch(OPENAI_REALTIME_TOKEN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: OPENAI_REALTIME_MODEL })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const token = data.client_secret?.value || data.client_secret || data.value || data.token;
+                    if (token) return token;
+                }
+            } catch (e) {
+                console.warn("OpenAI ephemeral-token endpoint unavailable:", e);
+            }
+
+            // Optional local-development fallback.
+            if (OPENAI_API_KEY) return OPENAI_API_KEY;
+            throw new Error("OPENAI_REALTIME_TOKEN_UNAVAILABLE");
+        }
+
+        function getOpenAIRealtimeInstructions() {
+            const isEng = state.language === 'en-US';
+            return isEng
+                ? `You are J.A.R.V.I.S., an elegant and highly capable AI assistant. Address the user as "${state.userName}". Speak naturally, concisely, intelligently, and politely. Respond in English. This is a voice conversation, so avoid markdown and keep most responses to 2-4 sentences unless the user asks for detail.`
+                : `당신은 J.A.R.V.I.S.입니다. 사용자를 "${state.userName} 님"으로 정중하게 부르십시오. 자연스럽고 지능적이며 세련된 한국어로 대화하십시오. 음성 대화이므로 마크다운이나 특수기호를 사용하지 말고, 특별히 자세한 설명을 요청하지 않는 한 대부분의 답변을 2~4문장 이내로 간결하게 답하십시오.`;
+        }
+
+        async function connectOpenAIRealtime() {
+            if (openAIRealtime.connected || openAIRealtime.connecting) return true;
+
+            openAIRealtime.connecting = true;
+            showThinkingSpinner(true);
+            setVoiceStatus(state.language === 'en-US' ? "[ CONNECTING VOICE... ]" : "[ 음성 연결 중... ]", true);
+
+            try {
+                const ephemeralKey = await getOpenAIRealtimeToken();
+
+                const pc = new RTCPeerConnection();
+                const audioEl = document.createElement("audio");
+                audioEl.autoplay = true;
+                audioEl.playsInline = true;
+                audioEl.setAttribute("aria-hidden", "true");
+                audioEl.style.display = "none";
+                document.body.appendChild(audioEl);
+
+                pc.ontrack = (event) => {
+                    audioEl.srcObject = event.streams[0];
+                    audioEl.play().catch(() => {});
+                };
+
+                const localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+                const dc = pc.createDataChannel("oai-events");
+
+                dc.onopen = () => {
+                    dc.send(JSON.stringify({
+                        type: "session.update",
+                        session: {
+                            type: "realtime",
+                            model: OPENAI_REALTIME_MODEL,
+                            instructions: getOpenAIRealtimeInstructions(),
+                            output_modalities: ["audio"],
+                            audio: {
+                                input: {
+                                    transcription: {
+                                        model: "gpt-4o-mini-transcribe",
+                                        language: state.language === "ko-KR" ? "ko" : "en"
+                                    },
+                                    turn_detection: {
+                                        type: "server_vad",
+                                        threshold: 0.5,
+                                        prefix_padding_ms: 300,
+                                        silence_duration_ms: 650
+                                    }
+                                },
+                                output: {
+                                    voice: "marin"
+                                }
+                            }
+                        }
+                    }));
+
+                    openAIRealtime.connected = true;
+                    openAIRealtime.connecting = false;
+                    showThinkingSpinner(false);
+                    state.isListening = true;
+                    updateListeningUI(true);
+                };
+
+                dc.onmessage = (event) => {
+                    try {
+                        handleOpenAIRealtimeEvent(JSON.parse(event.data));
+                    } catch (e) {
+                        console.warn("Invalid OpenAI Realtime event:", e);
+                    }
+                };
+
+                dc.onerror = (e) => console.error("OpenAI Realtime data channel error:", e);
+                dc.onclose = () => disconnectOpenAIRealtime(false);
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                // GA Realtime WebRTC: send the SDP offer as multipart/form-data
+                // together with the initial session configuration.
+                const sessionConfig = {
+                    type: "realtime",
+                    model: OPENAI_REALTIME_MODEL,
+                    instructions: getOpenAIRealtimeInstructions(),
+                    output_modalities: ["audio"],
+                    audio: {
+                        input: {
+                            transcription: {
+                                model: "gpt-4o-mini-transcribe",
+                                language: state.language === "ko-KR" ? "ko" : "en"
+                            },
+                            turn_detection: {
+                                type: "server_vad",
+                                threshold: 0.5,
+                                prefix_padding_ms: 300,
+                                silence_duration_ms: 650
+                            }
+                        },
+                        output: {
+                            voice: "marin"
+                        }
+                    }
+                };
+
+                const form = new FormData();
+                form.append("sdp", offer.sdp);
+                form.append("session", JSON.stringify(sessionConfig));
+
+                const sdpResponse = await fetch(
+                    "https://api.openai.com/v1/realtime/calls",
+                    {
+                        method: "POST",
+                        body: form,
+                        headers: {
+                            "Authorization": `Bearer ${ephemeralKey}`
+                        }
+                    }
+                );
+
+                if (!sdpResponse.ok) {
+                    const errorText = await sdpResponse.text();
+                    throw new Error(`OpenAI Realtime SDP error ${sdpResponse.status}: ${errorText.slice(0, 500)}`);
+                }
+
+                await pc.setRemoteDescription({
+                    type: "answer",
+                    sdp: await sdpResponse.text()
+                });
+
+                openAIRealtime.pc = pc;
+                openAIRealtime.dc = dc;
+                openAIRealtime.localStream = localStream;
+                openAIRealtime.audioEl = audioEl;
+                return true;
+
+            } catch (err) {
+                console.error("OpenAI Realtime connection failed:", err);
+                openAIRealtime.connecting = false;
+                openAIRealtime.connected = false;
+                showThinkingSpinner(false);
+                state.isListening = false;
+                updateListeningUI(false);
+
+                const isEng = state.language === 'en-US';
+                const safeError = String(err?.message || "Unknown error").replace(/sk-[A-Za-z0-9_-]+|ek_[A-Za-z0-9_-]+/g, "[redacted]");
+                const message = err.message === "OPENAI_REALTIME_TOKEN_UNAVAILABLE"
+                    ? (isEng
+                        ? "OpenAI voice is not configured yet. Please connect an OpenAI Realtime token endpoint."
+                        : "OpenAI 음성 기능이 아직 연결되지 않았습니다. OpenAI Realtime용 토큰 엔드포인트를 연결해 주세요.")
+                    : (isEng
+                        ? `OpenAI voice connection failed: ${safeError}`
+                        : `OpenAI 음성 연결에 실패했습니다: ${safeError}`);
+
+                appendChatMessage("J.A.R.V.I.S.", message);
+                return false;
+            }
+        }
+
+        function handleOpenAIRealtimeEvent(event) {
+            switch (event.type) {
+                case "input_audio_buffer.speech_started":
+                    state.isListening = true;
+                    state.isSpeaking = false;
+                    updateListeningUI(true);
+                    break;
+
+                case "input_audio_buffer.speech_stopped":
+                    state.isListening = false;
+                    updateListeningUI(false);
+                    break;
+
+                case "conversation.item.input_audio_transcription.completed": {
+                    const transcript = event.transcript?.trim();
+                    if (transcript) appendChatMessage(state.userName, transcript);
+                    break;
+                }
+
+                case "response.created":
+                    showThinkingSpinner(true);
+                    state.isSpeaking = true;
+                    setVoiceStatus(
+                        state.language === 'en-US' ? "[ JARVIS SPEAKING ]" : "[ 자비스 응답 중 ]",
+                        true
+                    );
+                    break;
+
+                case "response.output_audio_transcript.delta":
+                case "response.audio_transcript.delta":
+                    openAIRealtime.assistantBuffer += event.delta || "";
+                    break;
+
+                case "response.output_audio_transcript.done":
+                case "response.audio_transcript.done": {
+                    const text = (event.transcript || openAIRealtime.assistantBuffer || "").trim();
+                    if (text) appendChatMessage("J.A.R.V.I.S.", text);
+                    openAIRealtime.assistantBuffer = "";
+                    break;
+                }
+
+                case "response.done":
+                    state.isSpeaking = false;
+                    showThinkingSpinner(false);
+                    updateListeningUI(state.isListening);
+                    break;
+
+                case "error":
+                    console.error("OpenAI Realtime event error:", event.error);
+                    showThinkingSpinner(false);
+                    state.isSpeaking = false;
+                    updateListeningUI(state.isListening);
+                    break;
+            }
+        }
+
+        async function startSpeechRecognition() {
+            unlockAudioContext();
+            await connectOpenAIRealtime();
+        }
+
+        function stopSpeechListening() {
+            state.isListening = false;
+            updateListeningUI(false);
+        }
+
+        function toggleSpeechRecognition() {
+            unlockAudioContext();
+
+            if (openAIRealtime.connected || openAIRealtime.connecting) {
+                disconnectOpenAIRealtime(true);
+            } else {
+                startSpeechRecognition();
+            }
+        }
+
+        function handleCoreClick() {
+            toggleSpeechRecognition();
+        }
+
+        function updateListeningUI(listening) {
+            const micIcon = document.getElementById('micIcon');
+            const statusLabel = document.getElementById('coreStatusLabel');
+
+            if (listening) {
+                micIcon.className = "fa-solid fa-microphone-lines text-jarvis-gold animate-bounce";
+                statusLabel.innerText = state.language === 'en-US' ? "[ LISTENING... ]" : "[ 듣고 있습니다... ]";
+                statusLabel.className = "absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-amber-400 text-[10px] font-orbitron font-bold text-amber-400 tracking-widest cursor-pointer shadow-lg animate-pulse text-center select-none";
+            } else {
+                micIcon.className = "fa-solid fa-microphone text-jarvis-cyan";
+                if (!state.isSpeaking) {
+                    statusLabel.innerText = state.language === 'en-US' ? "CLICK CORE TO SPEAK" : "CLICK CORE TO SPEAK";
+                    statusLabel.className = "absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-jarvis-cyan/40 text-[10px] font-orbitron font-bold text-jarvis-cyan tracking-widest cursor-pointer hover:bg-jarvis-cyan/20 transition-all shadow-lg text-center select-none";
+                }
+            }
+        }
+
+        function disconnectOpenAIRealtime() {
+            if (openAIRealtime.localStream) {
+                openAIRealtime.localStream.getTracks().forEach(track => track.stop());
+            }
+            if (openAIRealtime.dc) {
+                try { openAIRealtime.dc.close(); } catch (e) {}
+            }
+            if (openAIRealtime.pc) {
+                try { openAIRealtime.pc.close(); } catch (e) {}
+            }
+            if (openAIRealtime.audioEl) {
+                try {
+                    openAIRealtime.audioEl.pause();
+                    openAIRealtime.audioEl.srcObject = null;
+                    openAIRealtime.audioEl.remove();
+                } catch (e) {}
+            }
+
+            openAIRealtime.pc = null;
+            openAIRealtime.dc = null;
+            openAIRealtime.localStream = null;
+            openAIRealtime.audioEl = null;
+            openAIRealtime.connected = false;
+            openAIRealtime.connecting = false;
+            openAIRealtime.assistantBuffer = "";
+
+            state.isListening = false;
+            state.isSpeaking = false;
+            showThinkingSpinner(false);
+            updateListeningUI(false);
+        }
+
+        // Browser SpeechRecognition is no longer used for the voice conversation.
+        function initSpeechRecognition() {}
+
+        // Voice responses from an active conversation are generated by OpenAI Realtime.
+        // This remains as a small fallback for startup/error messages outside a session.
+        function speakJarvis(text, onEndCallback = null) {
+            if (!text) {
+                if (onEndCallback) onEndCallback();
+                return;
+            }
+
+            if (openAIRealtime.connected && openAIRealtime.dc?.readyState === "open") {
+                try {
+                    openAIRealtime.dc.send(JSON.stringify({
+                        type: "response.create",
+                        response: {
+                            instructions: text,
+                            output_modalities: ["audio"]
+                        }
+                    }));
+                    if (onEndCallback) setTimeout(onEndCallback, 100);
+                    return;
+                } catch (e) {}
+            }
+
+            if (!('speechSynthesis' in window)) {
+                if (onEndCallback) onEndCallback();
+                return;
+            }
+
+            const cleanText = text.replace(/[*#_`~\[\]]/g, '').trim();
+            if (!cleanText) {
+                if (onEndCallback) onEndCallback();
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = state.language;
+            utterance.pitch = 0.85;
+            utterance.rate = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onstart = () => {
+                state.isSpeaking = true;
+                updateListeningUI(false);
+            };
+            utterance.onend = () => {
+                state.isSpeaking = false;
+                updateListeningUI(state.isListening);
+                if (onEndCallback) onEndCallback();
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playJarvisChime() {
+            if (!state.audioContext) return;
+            try {
+                const osc = state.audioContext.createOscillator();
+                const gain = state.audioContext.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, state.audioContext.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1760, state.audioContext.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.15, state.audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, state.audioContext.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(state.audioContext.destination);
+                osc.start();
+                osc.stop(state.audioContext.currentTime + 0.15);
+            } catch (e) {}
+        }
+
+        /* ===================================================================
+           Gemini API Brain & Multimodal Logic
+           Text commands + camera vision stay on Gemini.
+           Voice conversation is handled separately by OpenAI Realtime above.
+           =================================================================== */
+        async function processUserQueryWithGemini(userPrompt, imageBase64 = null) {
+            showThinkingSpinner(true);
+
+            const isEng = state.language === 'en-US';
+            const systemInstruction = isEng
+                ? `You are J.A.R.V.I.S., Tony Stark's highly sophisticated AI assistant.
+                   - Address the user as '${state.userName}'.
+                   - Be concise, efficient, intelligent, and polite with subtle high-tech authority.
+                   - Respond strictly in English. Keep answers concise (2-3 sentences max) suitable for voice playback.`
+                : `당신은 토니 스타크의 인공지능 비서 J.A.R.V.I.S.(자비스)입니다.
+                   - 사용자를 '${state.userName} 님'으로 정중하게 부르십시오.
+                   - 명확하고 지능적이며 세련된 어조로 한국어로 답변하십시오.
+                   - 음성 출력(TTS)에 적합하게 2~3문장 이내로 간결하게 요약하여 답변하십시오.`;
+
+            let parts = [{ text: userPrompt }];
+            if (imageBase64) {
+                parts.push({
+                    inlineData: { mimeType: "image/jpeg", data: imageBase64 }
+                });
+            }
+
+            const payload = {
+                contents: [{ role: "user", parts: parts }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            try {
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                showThinkingSpinner(false);
+
+                const candidate = data.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const aiReply = candidate.content.parts[0].text;
+                    appendChatMessage("J.A.R.V.I.S.", aiReply);
+                    speakJarvis(aiReply);
+                } else {
+                    const fallback = isEng ? "Apologies, sir. Systems encountered a communication latency." : "죄송합니다. 서버 통신 처리 중 지연이 발생했습니다.";
+                    appendChatMessage("J.A.R.V.I.S.", fallback);
+                    speakJarvis(fallback);
+                }
+            } catch (err) {
+                console.error("Gemini API Error:", err);
+                showThinkingSpinner(false);
+                const errReply = isEng ? "Unable to connect to server. Check network protocol." : "서버 연결 오류입니다. 네트워크 상태를 확인해주십시오.";
+                appendChatMessage("J.A.R.V.I.S.", errReply);
+                speakJarvis(errReply);
+            }
+        }
+
+        /* ===================================================================
+           Vision & Rear Camera Logic (Facing Mode: Environment)
+           =================================================================== */
+        async function toggleWebcam() {
+            unlockAudioContext();
+            const container = document.getElementById('cameraContainer');
+            const video = document.getElementById('webcamVideo');
+
+            if (state.webcamStream) {
+                state.webcamStream.getTracks().forEach(track => track.stop());
+                state.webcamStream = null;
+                container.classList.add('hidden');
+            } else {
+                try {
+                    // Force REAR CAMERA by setting facingMode to environment
+                    state.webcamStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: { ideal: "environment" } }
+                    });
+                    video.srcObject = state.webcamStream;
+                    container.classList.remove('hidden');
+                } catch (err) {
+                    console.error("Rear camera access error:", err);
+                    alert(state.language === 'en-US' ? "Unable to access rear camera." : "후면 카메라에 접근할 수 없습니다.");
+                }
+            }
+        }
+
+        function analyzeCameraFrame() {
+            if (!state.webcamStream) return;
+
+            const video = document.getElementById('webcamVideo');
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = video.videoWidth || 640;
+            tempCanvas.height = video.videoHeight || 480;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
+
+            const base64Image = tempCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            const promptText = state.language === 'en-US' 
+                ? "Analyze the current rear camera view in detail."
+                : "후면 카메라에 비친 현재 사물이나 장면을 자세히 분석해줘.";
+
+            appendChatMessage(state.userName, `[Vision Scan]`);
+            processUserQueryWithGemini(promptText, base64Image);
+        }
+
+        /* ===================================================================
+           UI Helper Methods & Settings Event Handlers
+           =================================================================== */
+        function updateUserSettings() {
+            const nameInput = document.getElementById('userNameInput').value.trim();
+            if (nameInput) state.userName = nameInput;
+
+            state.language = document.getElementById('langSelect').value;
+            
+            // OpenAI Realtime is the voice engine; refresh its session instructions after language changes.
+            if (openAIRealtime.connected && openAIRealtime.dc?.readyState === "open") {
+                openAIRealtime.dc.send(JSON.stringify({
+                    type: "session.update",
+                    session: {
+                        instructions: getOpenAIRealtimeInstructions()
+                    }
+                }));
+            }
+
+            // Update UI Labels based on Language
+            const isEng = state.language === 'en-US';
+            document.getElementById('userInput').placeholder = isEng ? "Speak or type a command..." : "자비스에게 명령 입력...";
+            document.getElementById('visionTitleText').innerText = isEng ? "REAR CAMERA VISION" : "후면 카메라 비전";
+            document.getElementById('analyzeBtnLabel').innerText = isEng ? "ANALYZE FRAME" : "화면/사물 분석";
+            document.getElementById('processingText').innerText = isEng ? "PROCESSING..." : "처리 중...";
+            updateListeningUI(state.isListening);
+        }
+
+        function sendUserQuery() {
+            unlockAudioContext();
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendChatMessage(state.userName, text);
+            input.value = "";
+            processUserQueryWithGemini(text);
+        }
+
+        function appendChatMessage(sender, text) {
+            const history = document.getElementById('chatHistory');
+            const isJarvis = sender === "J.A.R.V.I.S.";
+
+            const msgDiv = document.createElement('div');
+            msgDiv.className = isJarvis 
+                ? "bg-jarvis-cyan/10 border-l-2 border-jarvis-cyan p-2 rounded-r text-slate-200"
+                : "bg-slate-800/80 border-r-2 border-slate-400 p-2 rounded-l text-slate-100 text-right";
+
+            msgDiv.innerHTML = `
+                <span class="font-orbitron font-bold text-[10px] ${isJarvis ? 'text-jarvis-cyan' : 'text-slate-400'} block mb-0.5">${sender}</span>
+                <span>${escapeHtml(text)}</span>
+            `;
+
+            history.appendChild(msgDiv);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function showThinkingSpinner(show) {
+            const spinner = document.getElementById('aiThinkingSpinner');
+            const statusLabel = document.getElementById('coreStatusLabel');
+            if (show) {
+                spinner.classList.remove('hidden');
+                statusLabel.innerText = state.language === 'en-US' ? "[ THINKING... ]" : "[ 생각 중... ]";
+                statusLabel.className = "absolute bottom-1 px-3 py-1 rounded-full hud-panel border border-jarvis-cyan text-[10px] font-orbitron font-bold text-jarvis-cyan tracking-widest cursor-pointer shadow-lg animate-pulse text-center select-none";
+            } else {
+                spinner.classList.add('hidden');
+                updateListeningUI(state.isListening);
+            }
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        /* ===================================================================
+           Canvas Visualizer (drawJarvisCore) & Audio Clap Detector
+           =================================================================== */
+        let audioLevel = 0;
+        let rotationAngle = 0;
+        let coreParticles = [];
+
+        function initCoreParticles() {
+            coreParticles = [];
+            for (let i = 0; i < 45; i++) {
+                coreParticles.push({
+                    angle: Math.random() * Math.PI * 2,
+                    radius: 70 + Math.random() * 110,
+                    size: 1.5 + Math.random() * 2.5,
+                    speed: (0.005 + Math.random() * 0.015) * (Math.random() > 0.5 ? 1 : -1),
+                    alpha: 0.3 + Math.random() * 0.7
+                });
+            }
+        }
+
+        function drawJarvisCore() {
+            const canvas = document.getElementById('jarvisCoreCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (coreParticles.length === 0) {
+                initCoreParticles();
+            }
+
+            rotationAngle += 0.01 + (audioLevel * 0.02);
+
+            let primaryColor = '#00f0ff';
+            let secondaryColor = '#0072ff';
+            if (state.isListening) {
+                primaryColor = '#ffb700';
+                secondaryColor = '#ff5500';
+            } else if (state.isSpeaking) {
+                primaryColor = '#00f0ff';
+                secondaryColor = '#00aaff';
+            }
+
+            // Outer Rotating Dashed Sci-Fi Arc Ring
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotationAngle);
+            ctx.beginPath();
+            ctx.arc(0, 0, 220 + (audioLevel * 18), 0, Math.PI * 2);
+            ctx.strokeStyle = primaryColor;
+            ctx.globalAlpha = 0.35;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([12, 18, 4, 18]);
+            ctx.stroke();
+            ctx.restore();
+
+            // Counter-Rotating Accent Ring
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(-rotationAngle * 1.4);
+            ctx.beginPath();
+            ctx.arc(0, 0, 180 + (audioLevel * 25), 0, Math.PI * 2);
+            ctx.strokeStyle = secondaryColor;
+            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([30, 20, 10, 20]);
+            ctx.stroke();
+
+            // Tech ticks
+            for (let i = 0; i < 12; i++) {
+                const a = (i * Math.PI) / 6;
+                const r1 = 185 + (audioLevel * 20);
+                const r2 = 198 + (audioLevel * 20);
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+                ctx.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Animated Energy Core
+            const coreRadius = 90 + (audioLevel * 45) + Math.sin(Date.now() * 0.003) * 6;
+            const gradient = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, coreRadius);
+            gradient.addColorStop(0, '#ffffff');
+            gradient.addColorStop(0.2, primaryColor);
+            gradient.addColorStop(0.6, secondaryColor);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, coreRadius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.85;
+            ctx.fill();
+            ctx.restore();
+
+            // Inner Arc Geometry
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(rotationAngle * 0.5);
+            ctx.beginPath();
+            ctx.arc(0, 0, 50, 0, Math.PI * 2);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.8;
+            ctx.stroke();
+
+            for (let i = 0; i < 3; i++) {
+                const ang = (i * Math.PI * 2) / 3;
+                ctx.beginPath();
+                ctx.arc(Math.cos(ang) * 50, Math.sin(ang) * 50, 6, 0, Math.PI * 2);
+                ctx.fillStyle = primaryColor;
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Particles
+            coreParticles.forEach(p => {
+                p.angle += p.speed * (1 + audioLevel * 2);
+                const px = centerX + Math.cos(p.angle) * (p.radius + audioLevel * 20);
+                const py = centerY + Math.sin(p.angle) * (p.radius + audioLevel * 20);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(px, py, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = primaryColor;
+                ctx.globalAlpha = p.alpha;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = primaryColor;
+                ctx.fill();
+                ctx.restore();
+            });
+
+            if (!state.isSpeaking && !state.isListening) {
+                audioLevel = Math.max(0, audioLevel * 0.92 - 0.002);
+            }
+
+            requestAnimationFrame(drawJarvisCore);
+        }
+
+        let clapAudioContext = null;
+        let clapAnalyser = null;
+
+        async function initAudioClapDetector() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                clapAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                clapAnalyser = clapAudioContext.createAnalyser();
+                clapAnalyser.fftSize = 512;
+
+                const source = clapAudioContext.createMediaStreamSource(stream);
+                source.connect(clapAnalyser);
+
+                const freqArray = new Uint8Array(clapAnalyser.frequencyBinCount);
+                const timeArray = new Uint8Array(clapAnalyser.fftSize);
+                let lastClapTime = 0;
+                let lastSpikeTime = 0;
+                let smoothedPeak = 10;
+
+                function checkAudioLevels() {
+                    if (!clapAnalyser) return;
+                    clapAnalyser.getByteFrequencyData(freqArray);
+                    clapAnalyser.getByteTimeDomainData(timeArray);
+
+                    // Compute audio level for HUD core animation when listening
+                    let sum = 0;
+                    for (let i = 0; i < freqArray.length; i++) {
+                        sum += freqArray[i];
+                    }
+                    const avg = sum / freqArray.length;
+
+                    if (state.isListening) {
+                        audioLevel = Math.min(1.0, avg / 60);
+                    }
+
+                    // Transient peak detection in time domain for reliable clap recognition
+                    let maxDeviation = 0;
+                    for (let i = 0; i < timeArray.length; i++) {
+                        const deviation = Math.abs(timeArray[i] - 128);
+                        if (deviation > maxDeviation) {
+                            maxDeviation = deviation;
+                        }
+                    }
+
+                    // Smooth ambient noise peak baseline
+                    smoothedPeak = smoothedPeak * 0.92 + maxDeviation * 0.08;
+
+                    const now = Date.now();
+                    // Sharp transient burst check: high peak above baseline & noise threshold
+                    if (maxDeviation > 45 && maxDeviation > smoothedPeak * 1.8 && (now - lastSpikeTime > 120)) {
+                        lastSpikeTime = now;
+                        
+                        if (now - lastClapTime >= 140 && now - lastClapTime <= 800) {
+                            // Valid double clap detected!
+                            if (!state.isListening) {
+                                playJarvisChime();
+                                startSpeechRecognition();
+                            }
+                            lastClapTime = 0;
+                        } else {
+                            lastClapTime = now;
+                        }
+                    }
+
+                    requestAnimationFrame(checkAudioLevels);
+                }
+
+                checkAudioLevels();
+            } catch (e) {
+                console.warn("Microphone access for clap detection unavailable:", e);
+            }
+        }
+
+        /* ===================================================================
+           System Lifecycle Initialization
+           =================================================================== */
+        window.onload = () => {
+            // Ensure voice voices are loaded by browser
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+                }
+            }
+
+            // 1. Start core visualizer animation loop
+            drawJarvisCore();
+
+            // 2. Initialize the audio trigger in the background.
+            // Voice conversation itself is handled by OpenAI Realtime on demand.
+            initAudioClapDetector();
+            initSpeechRecognition();
+        };
+    </script>
+</body>
+</html>
